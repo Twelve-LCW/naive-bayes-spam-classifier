@@ -7,15 +7,20 @@ from collections import Counter
 
 # 固定随机种子，确保可复现
 RANDOM_SEED = 42
-TEST_SIZE = 0.2
+TRAIN_SIZE = 0.75
+VAL_SIZE = 0.1
+TEST_SIZE = 0.15  # 验证 + 测试 = 25%
 
 def build_vocab_and_split(
     cleaned_csv='data/cleaned_messages.csv',  # 输入路径（相对于当前脚本）
     train_indices_path='data/train_indices.npy',
+    val_indices_path='data/val_indices.npy',
     test_indices_path='data/test_indices.npy',
     vocab_path='data/vocab.json'
 ):
-    """ 从 cleaned_messages.csv 中划分训练/测试集，并构建词汇表 """
+    """ 
+    从 cleaned_messages.csv 中划分训练/验证/测试集，并构建词汇表（仅基于训练集）
+    """
     # 设置随机种子
     np.random.seed(RANDOM_SEED)
 
@@ -25,6 +30,7 @@ def build_vocab_and_split(
     # 构建完整路径
     cleaned_csv_full = os.path.join(script_dir, cleaned_csv)
     train_indices_full = os.path.join(script_dir, train_indices_path)
+    val_indices_full = os.path.join(script_dir, val_indices_path)
     test_indices_full = os.path.join(script_dir, test_indices_path)
     vocab_full = os.path.join(script_dir, vocab_path)
 
@@ -45,30 +51,47 @@ def build_vocab_and_split(
     spam_indices = [i for i, label in enumerate(labels) if label == 1]
     ham_indices = [i for i, label in enumerate(labels) if label == 0]
 
-    # 计算测试样本数
-    n_test_spam = int(len(spam_indices) * TEST_SIZE)
-    n_test_ham = int(len(ham_indices) * TEST_SIZE)
-
-    # 打乱并切分
+    # 打乱
     np.random.shuffle(spam_indices)
     np.random.shuffle(ham_indices)
-    test_spam = spam_indices[:n_test_spam]
-    test_ham = ham_indices[:n_test_ham]
-    train_spam = spam_indices[n_test_spam:]
-    train_ham = ham_indices[n_test_ham:]
+
+    # 计算各集合大小（按比例）
+    n_train_spam = int(len(spam_indices) * TRAIN_SIZE)
+    n_val_spam = int(len(spam_indices) * VAL_SIZE)
+    n_test_spam = len(spam_indices) - n_train_spam - n_val_spam  # 防止舍入误差
+
+    n_train_ham = int(len(ham_indices) * TRAIN_SIZE)
+    n_val_ham = int(len(ham_indices) * VAL_SIZE)
+    n_test_ham = len(ham_indices) - n_train_ham - n_val_ham
+
+    # 划分 spam
+    train_spam = spam_indices[:n_train_spam]
+    val_spam = spam_indices[n_train_spam : n_train_spam + n_val_spam]
+    test_spam = spam_indices[n_train_spam + n_val_spam : n_train_spam + n_val_spam + n_test_spam]
+
+    # 划分 ham
+    train_ham = ham_indices[:n_train_ham]
+    val_ham = ham_indices[n_train_ham : n_train_ham + n_val_ham]
+    test_ham = ham_indices[n_train_ham + n_val_ham : n_train_ham + n_val_ham + n_test_ham]
 
     # 合并并排序
     train_indices = np.sort(np.array(train_spam + train_ham))
+    val_indices = np.sort(np.array(val_spam + val_ham))
     test_indices = np.sort(np.array(test_spam + test_ham))
 
     # 保存索引
     os.makedirs(os.path.dirname(train_indices_full), exist_ok=True)
     np.save(train_indices_full, train_indices)
+    np.save(val_indices_full, val_indices)
     np.save(test_indices_full, test_indices)
 
-    print(f"Training set size: {len(train_indices)}")
-    print(f"Test set size: {len(test_indices)}")
-    print(f"The index has been saved to: {train_indices_full}, {test_indices_full}")
+    print(f"Training set size: {len(train_indices)} ({len(train_indices)/n_samples:.1%})")
+    print(f"Validation set size: {len(val_indices)} ({len(val_indices)/n_samples:.1%})")
+    print(f"Test set size: {len(test_indices)} ({len(test_indices)/n_samples:.1%})")
+    print(f"Indices saved to:")
+    print(f"  - Train: {train_indices_full}")
+    print(f"  - Val:   {val_indices_full}")
+    print(f"  - Test:  {test_indices_full}")
 
     # === 构建词汇表（仅基于训练集）===
     word_counter = Counter()
@@ -85,7 +108,7 @@ def build_vocab_and_split(
 
     # 检查词汇表是否为空
     if len(word_counter) == 0:
-        raise ValueError("词汇表为空！请检查 cleaned_messages.csv 中是否有有效文本。")
+        raise ValueError("The vocabulary list is empty! Please check cleaned_messages.csv ")
 
     # 排序保证顺序一致
     vocab = sorted(word_counter.keys())
