@@ -1,0 +1,108 @@
+from pathlib import Path
+import pandas as pd
+import numpy as np
+import json
+import os
+from collections import Counter
+
+# 固定随机种子，确保可复现
+RANDOM_SEED = 42
+TEST_SIZE = 0.2
+
+def build_vocab_and_split(
+    cleaned_csv='data/cleaned_messages.csv',  # 输入路径（相对于当前脚本）
+    train_indices_path='data/train_indices.npy',
+    test_indices_path='data/test_indices.npy',
+    vocab_path='data/vocab.json'
+):
+    """ 从 cleaned_messages.csv 中划分训练/测试集，并构建词汇表 """
+    # 设置随机种子
+    np.random.seed(RANDOM_SEED)
+
+    # 获取当前脚本所在目录
+    script_dir = Path(__file__).parent.parent
+
+    # 构建完整路径
+    cleaned_csv_full = os.path.join(script_dir, cleaned_csv)
+    train_indices_full = os.path.join(script_dir, train_indices_path)
+    test_indices_full = os.path.join(script_dir, test_indices_path)
+    vocab_full = os.path.join(script_dir, vocab_path)
+
+    # 检查输入文件是否存在
+    if not os.path.exists(cleaned_csv_full):
+        raise FileNotFoundError(f"Input file not found: {cleaned_csv_full}")
+
+    # 读取清洗后的数据
+    df = pd.read_csv(cleaned_csv_full)
+    messages = df['message'].tolist()
+    labels = df['label'].tolist()
+    n_samples = len(messages)
+
+    # 创建全量索引
+    all_indices = np.arange(n_samples)
+
+    # 分层采样：按标签划分
+    spam_indices = [i for i, label in enumerate(labels) if label == 1]
+    ham_indices = [i for i, label in enumerate(labels) if label == 0]
+
+    # 计算测试样本数
+    n_test_spam = int(len(spam_indices) * TEST_SIZE)
+    n_test_ham = int(len(ham_indices) * TEST_SIZE)
+
+    # 打乱并切分
+    np.random.shuffle(spam_indices)
+    np.random.shuffle(ham_indices)
+    test_spam = spam_indices[:n_test_spam]
+    test_ham = ham_indices[:n_test_ham]
+    train_spam = spam_indices[n_test_spam:]
+    train_ham = ham_indices[n_test_ham:]
+
+    # 合并并排序
+    train_indices = np.sort(np.array(train_spam + train_ham))
+    test_indices = np.sort(np.array(test_spam + test_ham))
+
+    # 保存索引
+    os.makedirs(os.path.dirname(train_indices_full), exist_ok=True)
+    np.save(train_indices_full, train_indices)
+    np.save(test_indices_full, test_indices)
+
+    print(f"Training set size: {len(train_indices)}")
+    print(f"Test set size: {len(test_indices)}")
+    print(f"The index has been saved to: {train_indices_full}, {test_indices_full}")
+
+    # === 构建词汇表（仅基于训练集）===
+    word_counter = Counter()
+    for idx in train_indices:
+        msg = messages[idx]
+        # 跳过 NaN、非字符串或空消息
+        if pd.isna(msg) or not isinstance(msg, str):
+            continue
+        msg = msg.strip()
+        if not msg:
+            continue
+        words = msg.split()  # 已清洗，直接分词
+        word_counter.update(words)
+
+    # 检查词汇表是否为空
+    if len(word_counter) == 0:
+        raise ValueError("词汇表为空！请检查 cleaned_messages.csv 中是否有有效文本。")
+
+    # 排序保证顺序一致
+    vocab = sorted(word_counter.keys())
+    word_to_idx = {word: idx for idx, word in enumerate(vocab)}
+
+    # 保存为 JSON
+    vocab_dict = {
+        "word_to_idx": word_to_idx,
+        "vocab_size": len(vocab),
+        "vocab": vocab
+    }
+    with open(vocab_full, 'w', encoding='utf-8') as f:
+        json.dump(vocab_dict, f, ensure_ascii=False, indent=2)
+
+    print(f"The vocabulary list has been constructed! Vocabulary Size: {len(vocab)}")
+    print(f"The vocabulary list has been saved to {vocab_full}")
+
+
+if __name__ == "__main__":
+    build_vocab_and_split()
