@@ -7,9 +7,9 @@ from collections import Counter
 
 # 固定随机种子，确保可复现
 RANDOM_SEED = 42
-TRAIN_SIZE = 0.75
-VAL_SIZE = 0.1
-TEST_SIZE = 0.15  # 验证 + 测试 = 25%
+TRAIN_SIZE = 0.8
+VAL_SIZE = 0.02
+TEST_SIZE = 0.18  # 验证 + 测试 = 25%
 
 def build_vocab_and_split(
     cleaned_csv='data/cleaned_messages.csv',  # 输入路径（相对于当前脚本）
