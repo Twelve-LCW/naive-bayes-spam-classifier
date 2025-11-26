@@ -138,3 +138,49 @@ class MultinomialNaiveBayes:
         """
         log_spam, log_ham = self.predict_log_proba(messages, word_to_idx)
         return [1 if s > h else 0 for s, h in zip(log_spam, log_ham)]
+    # ===== 添加到 MultinomialNaiveBayes 类中 =====
+
+    def save(self, filepath):
+        """
+        保存模型所有必要参数到文件（使用 pickle）
+        """
+        import pickle
+        model_data = {
+            'pi_spam': self.pi_spam,
+            'pi_ham': self.pi_ham,
+            'theta_spam': self.theta_spam,
+            'theta_ham': self.theta_ham,
+            'vocab_size': self.vocab_size,
+            'alpha': self.alpha,
+            'is_fitted': self.is_fitted
+        }
+        with open(filepath, 'wb') as f:
+            pickle.dump(model_data, f)
+        print(f"模型已保存至: {filepath}")
+
+    @classmethod
+    def load(cls, filepath, word_to_idx):
+        """
+        从文件加载模型，并绑定词汇表映射
+        Args:
+            filepath: 模型文件路径
+            word_to_idx: Dict[str, int] — 必须与训练时一致
+        Returns:
+            实例化的 MultinomialNaiveBayes 对象
+        """
+        import pickle
+        with open(filepath, 'rb') as f:
+            model_data = pickle.load(f)
+
+        model = cls(alpha=model_data.get('alpha', 1.0))
+        model.pi_spam = model_data['pi_spam']
+        model.pi_ham = model_data['pi_ham']
+        model.theta_spam = model_data['theta_spam']
+        model.theta_ham = model_data['theta_ham']
+        model.vocab_size = model_data['vocab_size']
+        model.is_fitted = model_data['is_fitted']
+
+        # 注意：word_to_idx 不保存在模型中（由外部提供），但必须一致
+        model._external_word_to_idx = word_to_idx  # 仅用于 predict 接口兼容性（可选）
+
+        return model
