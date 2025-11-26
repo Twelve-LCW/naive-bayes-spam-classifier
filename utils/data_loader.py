@@ -15,7 +15,10 @@ class DataLoader:
     """
 
     def __init__(self, data_dir='data'):
-        self.data_dir = Path(data_dir)
+        # 获取当前文件所在目录的父目录（项目根目录）
+        current_file = Path(__file__)
+        root_dir = current_file.parent.parent  # utils -> project_root
+        self.data_dir = root_dir / data_dir
 
     def load_cleaned_data(self):
         """

@@ -93,7 +93,7 @@ class MultinomialNaiveBayes:
         ]
 
         self.is_fitted = True
-        print("Multinomial NB 模型训练完成！")
+        print("Multinomial NB model training is complete!")
         print(f"   Spam prior: {self.pi_spam:.4f}, Ham prior: {self.pi_ham:.4f}")
         print(f"   Vocabulary size: {self.vocab_size}")
 
@@ -156,7 +156,7 @@ class MultinomialNaiveBayes:
         }
         with open(filepath, 'wb') as f:
             pickle.dump(model_data, f)
-        print(f"模型已保存至: {filepath}")
+        print(f"The model has been saved to: {filepath}")
 
     @classmethod
     def load(cls, filepath, word_to_idx):
