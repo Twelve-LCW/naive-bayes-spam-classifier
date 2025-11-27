@@ -26,13 +26,13 @@ def main():
 
     # 初始化并训练模型
     print("Start training the Bernoulli Naive Bayes model...")
-    model = BernoulliNaiveBayes(alpha=1.0)
+    model = BernoulliNaiveBayes(alpha=0.1)
     model.fit(train_messages, train_labels, word_to_idx)
 
     # 保存模型到 saved_models/
     saved_models_dir = project_root / 'saved_models'
     saved_models_dir.mkdir(parents=True, exist_ok=True)  # 创建目录（包括父目录）
-    model_path = saved_models_dir / 'bernoulli_nb_model.pkl'
+    model_path = saved_models_dir / 'bernoulli_nb_model_alpha0.1.pkl'
 
     model.save(model_path)
 

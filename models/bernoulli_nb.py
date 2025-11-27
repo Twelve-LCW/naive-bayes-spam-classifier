@@ -8,7 +8,7 @@ class BernoulliNaiveBayes:
     - 假设输入为词存在性（基于共享 vocab)
     """
 
-    def __init__(self, alpha=1.0):
+    def __init__(self, alpha=0.1):
         self.alpha = alpha
         self.pi_spam = 0.0  # P(spam)
         self.pi_ham = 0.0  # P(ham)
