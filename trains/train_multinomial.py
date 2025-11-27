@@ -34,7 +34,7 @@ def main():
     # 保存模型到 saved_models/
     saved_models_dir = project_root / 'saved_models'
     saved_models_dir.mkdir(parents=True, exist_ok=True)  # 创建目录（包括父目录）
-    model_path = saved_models_dir / 'multinomial_nb_model.pkl'
+    model_path = saved_models_dir / 'multinomial_nb_model_alpha0.5.pkl'
 
     model.save(model_path)
 

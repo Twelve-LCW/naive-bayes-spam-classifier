@@ -9,7 +9,7 @@ class MultinomialNaiveBayes:
     - 假设输入为词频向量（基于共享 vocab)
     """
 
-    def __init__(self, alpha=1.0):
+    def __init__(self, alpha=0.5):
         self.alpha = alpha
         self.pi_spam = 0.0      # P(spam)
         self.pi_ham = 0.0       # P(ham)
