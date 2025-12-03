@@ -7,25 +7,24 @@ import json
 
 class DataLoader:
     """
-    统一加载预处理后的数据：
+    Load preprocessed data uniformly:
       - cleaned messages and labels
       - train/val/test indices
       - vocabulary
-    所有路径相对于项目根目录。
     """
 
     def __init__(self, data_dir='data'):
-        # 获取当前文件所在目录的父目录（项目根目录）
+        # Get the parent directory (project root directory) of the directory where the current file is located.
         current_file = Path(__file__)
         root_dir = current_file.parent.parent  # utils -> project_root
         self.data_dir = root_dir / data_dir
 
     def load_cleaned_data(self):
         """
-        加载 cleaned_messages.csv
+        Load cleaned_messages.csv
         Returns:
-            messages (List[str]): 清洗后的邮件正文
-            labels (List[int]): 对应标签 (0=ham, 1=spam)
+            messages (List[str]): Cleaned email body
+            labels (List[int]): Corresponding tags (0=ham, 1=spam)
         """
         csv_path = self.data_dir / 'cleaned_messages.csv'
         if not csv_path.exists():
@@ -38,11 +37,11 @@ class DataLoader:
 
     def load_indices(self, split='train'):
         """
-        加载指定划分的索引
+        Load the index of the specified partition
         Args:
             split (str): 'train', 'val', or 'test'
         Returns:
-            np.ndarray: 样本索引数组
+            np.ndarray: Sample index array
         """
         valid_splits = {'train', 'val', 'test'}
         if split not in valid_splits:
@@ -56,9 +55,9 @@ class DataLoader:
 
     def load_vocab(self):
         """
-        加载 vocab.json
+        Load vocab.json
         Returns:
-            dict: 包含 'word_to_idx', 'idx_to_word' (可选), 'vocab_size', 'vocab'
+            dict: Include 'word_to_idx', 'idx_to_word' (optinal), 'vocab_size', 'vocab'
         """
         vocab_file = self.data_dir / 'vocab.json'
         if not vocab_file.exists():
@@ -67,7 +66,6 @@ class DataLoader:
         with open(vocab_file, 'r', encoding='utf-8') as f:
             vocab_dict = json.load(f)
 
-        # 可选：动态添加 idx_to_word（如果原始没有）
         if 'idx_to_word' not in vocab_dict:
             word_to_idx = vocab_dict['word_to_idx']
             idx_to_word = {idx: word for word, idx in word_to_idx.items()}
@@ -77,7 +75,7 @@ class DataLoader:
 
     def get_split_data(self, split='train'):
         """
-        获取指定划分的 (messages, labels) 列表
+        Retrieves a list of (messages, labels) for a specified partition.
         Args:
             split (str): 'train', 'val', or 'test'
         Returns:

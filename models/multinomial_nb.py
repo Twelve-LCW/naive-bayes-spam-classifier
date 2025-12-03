@@ -4,28 +4,27 @@ from math import log
 
 class MultinomialNaiveBayes:
     """
-     Multinomial Naive Bayes 分类器（用于垃圾邮件检测）
-    - 支持拉普拉斯平滑
-    - 假设输入为词频向量（基于共享 vocab)
+     Multinomial Naive Bayes Classifier
+    -Input:Word frequency vectors(vocab.json)
     """
 
-    def __init__(self, alpha=0.5):
+    def __init__(self, alpha=1.0):
         self.alpha = alpha
         self.pi_spam = 0.0      # P(spam)
         self.pi_ham = 0.0       # P(ham)
-        self.theta_spam = None  # P(word_j | spam)，长度 = vocab_size
+        self.theta_spam = None  # P(word_j | spam),length = vocab_size
         self.theta_ham = None   # P(word_j | ham)
         self.vocab_size = 0
         self.is_fitted = False
 
     def _vectorize(self, messages, word_to_idx):
         """
-        将消息列表转换为词频矩阵(list of lists)
+        Convert the message list into a word frequency matrix
         Args:
-            messages: List[str]，每条是清洗后的文本（如 "hello world hello")
+            messages: List[str],Each line is the cleaned text.(For example "hello world hello")
             word_to_idx: Dict[str, int]
-        Returns:
-            X: List[List[int]]，每个元素是长度为 vocab_size 的词频向量
+        Output:
+            X: List[List[int]],Each element is a word frequency vector of length vocab_size.
         """
         X = []
         for msg in messages:
@@ -40,35 +39,35 @@ class MultinomialNaiveBayes:
 
     def fit(self, train_messages, train_labels, word_to_idx):
         """
-        训练 Multinomial NB 模型
+        Multinomial NB model training
         Args:
-            train_messages: List[str] — 清洗后的训练邮件正文
-            train_labels: List[int] — 对应标签 (0=ham, 1=spam)
-            word_to_idx: Dict[str, int] — 共享词汇表映射
+            train_messages: List[str] — Cleaned training email body
+            train_labels: List[int] — Labels(0=ham, 1=spam)
+            word_to_idx: Dict[str, int] — Shared vocabulary mapping
         """
         self.vocab_size = len(word_to_idx)
-        word_to_idx = word_to_idx  # 本地引用
+        word_to_idx = word_to_idx 
 
-        # 向量化训练数据
+        # Vectorized training data
         X_train = self._vectorize(train_messages, word_to_idx)
         y_train = train_labels
 
-        # 统计类别数量
+        # Number of statistical categories
         N_spam = sum(1 for y in y_train if y == 1)
         N_ham = len(y_train) - N_spam
         N_total = len(y_train)
 
-        # 计算先验概率（带极小值防止 log(0)，但通常不会为0）
+        # Calculate the prior probability (with a minimum value to prevent log(0), but it is usually not 0).
         self.pi_spam = N_spam / N_total
         self.pi_ham = N_ham / N_total
 
-        # 初始化词频统计
+        # Initialize word frequency statistics
         count_spam = [0] * self.vocab_size  # L_spam,j
         count_ham = [0] * self.vocab_size   # L_ham,j
         total_words_spam = 0
         total_words_ham = 0
 
-        # 遍历训练样本，累加词频
+        # Traverse the training samples and accumulate word frequencies
         for x, y in zip(X_train, y_train):
             if y == 1:  # spam
                 for j, freq in enumerate(x):
@@ -81,7 +80,7 @@ class MultinomialNaiveBayes:
                         count_ham[j] += freq
                         total_words_ham += freq
 
-        # 拉普拉斯平滑：θ_cj = (L_cj + α) / (L_c + α * V)
+        # Laplace smoothing:θ_cj = (L_cj + α) / (L_c + α * V)
         V = self.vocab_size
         self.theta_spam = [
             (count_spam[j] + self.alpha) / (total_words_spam + self.alpha * V)
@@ -99,7 +98,7 @@ class MultinomialNaiveBayes:
 
     def predict_log_proba(self, messages, word_to_idx):
         """
-        （内部方法）返回 log P(spam|x) 和 log P(ham|x) 的未归一化得分
+        (Internal method) Returns the unnormalized scores of log P(spam|x) and log P(ham|x).
         """
         if not self.is_fitted:
             raise RuntimeError("Model must be fitted before prediction.")
@@ -112,13 +111,13 @@ class MultinomialNaiveBayes:
         log_pi_ham = log(self.pi_ham)
 
         for x in X:
-            # 计算 log P(x|spam) + log P(spam)
+            # log P(x|spam) + log P(spam)
             score_spam = log_pi_spam
             score_ham = log_pi_ham
 
             for j, freq in enumerate(x):
                 if freq > 0:
-                    # 避免 log(0)，但理论上不会发生（因拉普拉斯平滑）
+                    # To avoid log(0), but theoretically it shouldn't happen (due to Laplace smoothing).
                     score_spam += freq * log(self.theta_spam[j])
                     score_ham += freq * log(self.theta_ham[j])
 
@@ -129,7 +128,7 @@ class MultinomialNaiveBayes:
 
     def predict(self, messages, word_to_idx):
         """
-        预测标签
+        Predicted Labels
         Args:
             messages: List[str]
             word_to_idx: Dict[str, int]
@@ -138,11 +137,11 @@ class MultinomialNaiveBayes:
         """
         log_spam, log_ham = self.predict_log_proba(messages, word_to_idx)
         return [1 if s > h else 0 for s, h in zip(log_spam, log_ham)]
-    # ===== 添加到 MultinomialNaiveBayes 类中 =====
+    # =====Model saving =====
 
     def save(self, filepath):
         """
-        保存模型所有必要参数到文件（使用 pickle）
+        Save all necessary model parameters to a file (pickle).
         """
         import pickle
         model_data = {
@@ -161,12 +160,12 @@ class MultinomialNaiveBayes:
     @classmethod
     def load(cls, filepath, word_to_idx):
         """
-        从文件加载模型，并绑定词汇表映射
+        Load the model from the file and bind the vocabulary mapping.
         Args:
-            filepath: 模型文件路径
-            word_to_idx: Dict[str, int] — 必须与训练时一致
+            filepath: Model file path
+            word_to_idx: Dict[str, int] — Must be consistent with training
         Returns:
-            实例化的 MultinomialNaiveBayes 对象
+            Instantiated MultinomialNaiveBayes objects
         """
         import pickle
         with open(filepath, 'rb') as f:
@@ -180,7 +179,7 @@ class MultinomialNaiveBayes:
         model.vocab_size = model_data['vocab_size']
         model.is_fitted = model_data['is_fitted']
 
-        # 注意：word_to_idx 不保存在模型中（由外部提供），但必须一致
-        model._external_word_to_idx = word_to_idx  # 仅用于 predict 接口兼容性（可选）
+        # The word_to_idx is not stored in the model (it is provided externally), but it must be consistent.
+        model._external_word_to_idx = word_to_idx  # For predict interface compatibility only
 
         return model

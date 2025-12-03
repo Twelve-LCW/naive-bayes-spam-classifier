@@ -5,81 +5,82 @@ import json
 import os
 from collections import Counter
 
-# 固定随机种子，确保可复现
+# Fixed random seed to ensure reproducibility
 RANDOM_SEED = 42
 TRAIN_SIZE = 0.8
 VAL_SIZE = 0.02
-TEST_SIZE = 0.18  # 验证 + 测试 = 25%
+TEST_SIZE = 0.18  # Validation + Testing = 20%
 
 def build_vocab_and_split(
-    cleaned_csv='data/cleaned_messages.csv',  # 输入路径（相对于当前脚本）
+    cleaned_csv='data/cleaned_messages.csv',  # Input path
     train_indices_path='data/train_indices.npy',
     val_indices_path='data/val_indices.npy',
     test_indices_path='data/test_indices.npy',
     vocab_path='data/vocab.json'
 ):
     """ 
-    从 cleaned_messages.csv 中划分训练/验证/测试集，并构建词汇表（仅基于训练集）
+    Split the cleaned_messages.csv file into training/validation/test sets 
+    and construct a vocabulary (based only on the training set).
     """
-    # 设置随机种子
+    # Set random seed
     np.random.seed(RANDOM_SEED)
 
-    # 获取当前脚本所在目录
+    # Get the directory where the current script is located
     script_dir = Path(__file__).parent.parent
 
-    # 构建完整路径
+    # Build the full path
     cleaned_csv_full = os.path.join(script_dir, cleaned_csv)
     train_indices_full = os.path.join(script_dir, train_indices_path)
     val_indices_full = os.path.join(script_dir, val_indices_path)
     test_indices_full = os.path.join(script_dir, test_indices_path)
     vocab_full = os.path.join(script_dir, vocab_path)
 
-    # 检查输入文件是否存在
+    # Check if the input file exists.
     if not os.path.exists(cleaned_csv_full):
         raise FileNotFoundError(f"Input file not found: {cleaned_csv_full}")
 
-    # 读取清洗后的数据
+    # Read the cleaned data
     df = pd.read_csv(cleaned_csv_full)
     messages = df['message'].tolist()
     labels = df['label'].tolist()
     n_samples = len(messages)
 
-    # 创建全量索引
+    # Create a full index
     all_indices = np.arange(n_samples)
 
-    # 分层采样：按标签划分
+    # Stratified sampling: divided by label
     spam_indices = [i for i, label in enumerate(labels) if label == 1]
     ham_indices = [i for i, label in enumerate(labels) if label == 0]
 
-    # 打乱
+    # Reshuffle
     np.random.shuffle(spam_indices)
     np.random.shuffle(ham_indices)
 
-    # 计算各集合大小（按比例）
+    # Calculate the size of each set (proportional).
     n_train_spam = int(len(spam_indices) * TRAIN_SIZE)
     n_val_spam = int(len(spam_indices) * VAL_SIZE)
-    n_test_spam = len(spam_indices) - n_train_spam - n_val_spam  # 防止舍入误差
+    n_test_spam = len(spam_indices) - n_train_spam - n_val_spam  # Preventing rounding errors
 
     n_train_ham = int(len(ham_indices) * TRAIN_SIZE)
     n_val_ham = int(len(ham_indices) * VAL_SIZE)
     n_test_ham = len(ham_indices) - n_train_ham - n_val_ham
 
-    # 划分 spam
+    # Spam division
     train_spam = spam_indices[:n_train_spam]
     val_spam = spam_indices[n_train_spam : n_train_spam + n_val_spam]
     test_spam = spam_indices[n_train_spam + n_val_spam : n_train_spam + n_val_spam + n_test_spam]
 
-    # 划分 ham
+    # Divide ham
     train_ham = ham_indices[:n_train_ham]
     val_ham = ham_indices[n_train_ham : n_train_ham + n_val_ham]
     test_ham = ham_indices[n_train_ham + n_val_ham : n_train_ham + n_val_ham + n_test_ham]
 
-    # 合并并排序
+    # Merge and sort
     train_indices = np.sort(np.array(train_spam + train_ham))
     val_indices = np.sort(np.array(val_spam + val_ham))
     test_indices = np.sort(np.array(test_spam + test_ham))
 
-    # 保存索引
+    # Save Index
     os.makedirs(os.path.dirname(train_indices_full), exist_ok=True)
     np.save(train_indices_full, train_indices)
     np.save(val_indices_full, val_indices)
@@ -93,28 +94,28 @@ def build_vocab_and_split(
     print(f"  - Val:   {val_indices_full}")
     print(f"  - Test:  {test_indices_full}")
 
-    # === 构建词汇表（仅基于训练集）===
+    # === Constructing a vocabulary (based on the training set only)===
     word_counter = Counter()
     for idx in train_indices:
         msg = messages[idx]
-        # 跳过 NaN、非字符串或空消息
+        # Skip NaN, non-string, or empty messages
         if pd.isna(msg) or not isinstance(msg, str):
             continue
         msg = msg.strip()
         if not msg:
             continue
-        words = msg.split()  # 已清洗，直接分词
+        words = msg.split()  # Cleaned, directly segmented into words
         word_counter.update(words)
 
-    # 检查词汇表是否为空
+    # Check if the vocabulary list is empty.
     if len(word_counter) == 0:
         raise ValueError("The vocabulary list is empty! Please check cleaned_messages.csv ")
 
-    # 排序保证顺序一致
+    # Sorting ensures consistency of order.
     vocab = sorted(word_counter.keys())
     word_to_idx = {word: idx for idx, word in enumerate(vocab)}
 
-    # 保存为 JSON
+    # Save as JSON
     vocab_dict = {
         "word_to_idx": word_to_idx,
         "vocab_size": len(vocab),
