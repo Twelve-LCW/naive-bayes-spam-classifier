@@ -2,11 +2,10 @@ import re
 import sys
 from pathlib import Path
 
-# === 关键修复：动态将项目根目录加入 Python 路径 ===
+# Dynamically add the project root directory to the Python path
 project_root = Path(__file__).parent.parent.resolve()
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
-# ==============================================
 
 from utils.data_loader import DataLoader
 from models.bernoulli_nb import BernoulliNaiveBayes

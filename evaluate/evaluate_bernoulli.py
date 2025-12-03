@@ -13,7 +13,7 @@ from models.bernoulli_nb import BernoulliNaiveBayes
 
 def load_model_and_vocab():
     """
-    加载已保存的模型和词汇表
+    Load the saved model and vocabulary.
     """
     model_path = project_root / 'saved_models' / 'bernoulli_nb_model_alpha0.1.pkl'
     if not model_path.exists():
@@ -29,8 +29,8 @@ def load_model_and_vocab():
 
 def compute_metrics(y_true, y_pred):
     """
-    使用 numpy 手动计算 Accuracy, Precision, Recall 和 Confusion Matrix
-    假设 positive class is 1 (spam), negative class is 0 (ham)
+    Calculation of Accuracy, Precision, Recall, and Confusion Matrix
+    Assume positive class is 1 (spam), negative class is 0 (ham)
     """
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
@@ -53,8 +53,8 @@ def compute_metrics(y_true, y_pred):
 
 def evaluate_on_test_set():
     """
-    在测试集上评估 Bernoulli Naive Bayes 模型性能
-    计算并输出：准确率、精确率、召回率、混淆矩阵、TP/FP/FN/TN 以及测试集原始样本分布
+    Evaluate the performance of the Multinomial Naive Bayes model on the test set.
+    Output:Accuracy, precision, recall, confusion matrix, TP/FP/FN/TN
     """
     # Load model and vocabulary
     model, word_to_idx = load_model_and_vocab()

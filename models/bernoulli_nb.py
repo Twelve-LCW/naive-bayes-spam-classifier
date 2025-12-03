@@ -3,9 +3,8 @@ from math import log
 
 class BernoulliNaiveBayes:
     """
-     Bernoulli Naive Bayes 分类器（用于垃圾邮件检测）
-    - 支持拉普拉斯平滑
-    - 假设输入为词存在性（基于共享 vocab)
+     Bernoulli Naive Bayes Classifier
+    -Input:Word existence vectors(vocab.json)
     """
 
     def __init__(self, alpha=0.1):
@@ -19,12 +18,12 @@ class BernoulliNaiveBayes:
 
     def _vectorize(self, messages, word_to_idx):
         """
-        将消息列表转换为词存在性矩阵(list of lists)
+        Convert the message list into a word existence matrix
         Args:
-            messages: List[str]，每条是清洗后的文本（如 "hello world hello")
+            messages: List[str],Each line is the cleaned text.(For example "hello world hello")
             word_to_idx: Dict[str, int]
-        Returns:
-            X: List[List[int]]，每个元素是长度为 vocab_size 的词存在性向量，1表示存在，0表示不存在
+        Output:
+            X: List[List[int]],Each element is a word existence vector of length vocab_size.
         """
         X = []
         for msg in messages:
@@ -42,9 +41,9 @@ class BernoulliNaiveBayes:
         """
         train Bernoulli NB model
         Args:
-            train_messages: List[str] — 清洗后的训练邮件正文
-            train_labels: List[int] — 对应标签 (0=ham, 1=spam)
-            word_to_idx: Dict[str, int] — 共享词汇表映射
+            train_messages: List[str] — Cleaned training email body
+            train_labels: List[int] — Labels(0=ham, 1=spam)
+            word_to_idx: Dict[str, int] — Shared vocabulary mapping
         """
         self.vocab_size = len(word_to_idx)
         X_train = self._vectorize(train_messages, word_to_idx)
@@ -84,7 +83,7 @@ class BernoulliNaiveBayes:
 
     def predict_log_proba(self, messages, word_to_idx):
         """
-        （内部方法）返回 log P(spam|x) 和 log P(ham|x) 的未归一化得分
+        (Internal method) Returns the unnormalized scores of log P(spam|x) and log P(ham|x).
         """
         if not self.is_fitted:
             raise RuntimeError("Model must be fitted before prediction.")
@@ -111,7 +110,7 @@ class BernoulliNaiveBayes:
 
     def predict(self, messages, word_to_idx):
         """
-        预测标签
+        Predicted Labels
         Args:
             messages: List[str]
             word_to_idx: Dict[str, int]
@@ -123,7 +122,7 @@ class BernoulliNaiveBayes:
 
     def save(self, filepath):
         """
-        保存模型所有必要参数到文件（使用 pickle）
+        Save all necessary model parameters to a file (pickle).
         """
         import pickle
         model_data = {
@@ -142,12 +141,12 @@ class BernoulliNaiveBayes:
     @classmethod
     def load(cls, filepath, word_to_idx):
         """
-        从文件加载模型，并绑定词汇表映射
+        Load the model from the file and bind the vocabulary mapping.
         Args:
-            filepath: 模型文件路径
-            word_to_idx: Dict[str, int] — 必须与训练时一致
+            filepath: Model file path
+            word_to_idx: Dict[str, int] — Must be consistent with training
         Returns:
-            实例化的 BernoulliNaiveBayes 对象
+            Instantiated MultinomialNaiveBayes objects
         """
         import pickle
         with open(filepath, 'rb') as f:
@@ -161,7 +160,7 @@ class BernoulliNaiveBayes:
         model.vocab_size = model_data['vocab_size']
         model.is_fitted = model_data['is_fitted']
 
-        # 注意：word_to_idx 不保存在模型中（由外部提供），但必须一致
-        model._external_word_to_idx = word_to_idx  # 仅用于 predict 接口兼容性（可选）
+        # The word_to_idx is not stored in the model (it is provided externally), but it must be consistent.
+        model._external_word_to_idx = word_to_idx  # For predict interface compatibility only
 
         return model
