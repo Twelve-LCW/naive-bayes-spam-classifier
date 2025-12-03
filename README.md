@@ -1,41 +1,218 @@
 # Naive Bayes Spam Classifier
-本项目实现 Multinomial NB 和 Bernoulli NB 分类器，用于垃圾邮件检测。
 
-```markdown
-naive-bayes-spam/
-├── data/
-│   ├── messages.csv                     # 原始数据集（未清洗，无 header）
-│   ├── cleaned_messages.csv             # 清洗后的消息（仅 message + label）
-│   ├── train_indices.npy                # 训练样本在 cleaned_messages.csv 中的行索引
-│   ├── val_indices.npy                  # 验证样本索引
-│   ├── test_indices.npy                 # 测试样本索引
-│   └── vocab.json                       # 仅基于训练集构建的词汇表（word_to_idx 映射）
+A simple yet effective spam email classifier based on the **Naive Bayes algorithm**, implemented in Python.  
+This project includes two variants:
+- **Multinomial Naive Bayes** (for word frequency-based features)
+- **Bernoulli Naive Bayes** (for binary presence/absence of words)
+
+The system supports training, evaluation, and prediction on new emails.
+
+---
+
+## 📁 Project Structure
+```python
+naive-bayes-spam-classifier/
 │
-├── preprocessing/
-│   ├── __init__.py
-│   ├── text_processor.py                # 清洗文本 + 生成 cleaned_messages.csv
-│   └── data_splitter.py                 # 划分训练/测试索引 + 构建 vocab.json
+├── data/                    # Raw and cleaned dataset
+│   ├── messages.csv           # Original raw messages with labels
+│   ├── cleaned_messages.csv   # Preprocessed text after cleaning
+│   ├── vocab.json             # Vocabulary mapping (word → index)
+│   └── *.npy                  # Train/val/test split indices
 │
-├── models/
-│   ├── __init__.py
-│   ├── multinomial_nb.py                # B: Multinomial Naive Bayes 实现
-│   └── bernoulli_nb.py                  # A: Bernoulli Naive Bayes 实现
+├── evaluate/                 # Evaluation and prediction scripts
+│   ├── evaluate_multinomial.py    # Evaluate Multinomial NB on test set
+│   ├── evaluate_bernoulli.py      # Evaluate Bernoulli NB on test set
+│   ├── predict_multinomial.py     # Predict single email using Multinomial NB
+│   └── predict_bernoulli.py       # Predict single email using Bernoulli NB
 │
-├── utils/
-│   ├── data_loader.py                   # 统一加载 cleaned data + indices + vocab
-│   └── model_io.py                      # 模型序列化保存/加载工具（如 pickle）
+├── models/                   # Model implementations
+│   ├── bernoulli_nb.py          # Bernoulli Naive Bayes classifier
+│   └── multinomial_nb.py        # Multinomial Naive Bayes classifier
 │
-├── train/
-│   ├── train_multinomial.py             # B训练脚本 → 输出 multinomial_model.pkl
-│   └── train_bernoulli.py               # A训练脚本 → 输出 bernoulli_model.pkl
+├── preprocessing/            # Data preprocessing utilities
+│   ├── data_splitter.py         # Split data into train/val/test sets
+│   └── text_processor.py        # Clean and tokenize text
 │
-├── evaluate/
-│   ├── predict_interface.py             # 统一预测接口（输入原始文本 → 输出 0/1）
-│   └── evaluate_comparison.py           # 加载两个模型 + 测试集 → 输出 Precision/Recall 对比
+├── saved_models/             # Trained model files (pickle format)
+│   ├── bernoulli_nb_model_alpha*.pkl
+│   └── multinomial_nb_model_alpha*.pkl
 │
-├── saved_models/
-│   ├── multinomial_model.pkl
-│   └── bernoulli_model.pkl
+├── trains/                   # Training scripts
+│   ├── train_bernoulli.py       # Train Bernoulli NB model
+│   └── train_multinomial.py     # Train Multinomial NB model
 │
-├── README.md                            # 项目说明：如何运行、依赖、示例命令
-└── report/                              # 实验报告、结果图表等
+├── utils/                    # Utility modules
+│   └── data_loader.py           # Load data
+│
+├── .gitignore
+└── README.md
+```
+
+
+
+## 🛠️ Environment Requirements
+
+This project is tested and compatible with the following environment:
+
+| Package | Version |
+|--------|---------|
+| Python | 3.9.23 |
+| pandas | 2.2.3 |
+| numpy  | 2.1.3 |
+| json   | 2.0.9 |
+
+> ✅ No external ML libraries (e.g., scikit-learn) are required — all metrics are computed manually using `numpy`.
+
+---
+
+## 🔧 Setup Instructions
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Twelve-LCW/naive-bayes-spam-classifier.git
+cd naive-bayes-spam-classifier
+```
+
+### 2. Create a Virtual Environment (Recommended)
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+
+Install required packages via `requirements.txt` or manually:
+
+```bash
+pip install pandas==2.2.3 numpy==2.1.3
+```
+
+> Note: Standard `json` module is built-in; no installation needed.
+
+---
+
+## 🚀 Running the Program
+
+### 📌 Prerequisites
+Ensure that:
+- The `data/cleaned_messages.csv`, `vocab.json`, and split indices exist.
+- Models have been trained and saved to `saved_models/`.
+
+If not, run training first.
+
+---
+
+### 🔹 Step 1: Train the Model
+
+Run one of the training scripts to generate model files:
+
+```bash
+python trains/train_multinomial.py
+python trains/train_bernoulli.py
+```
+
+> These scripts will save models like `multinomial_nb_model_alpha1.pkl` to `saved_models/`.
+
+---
+
+### 🔹 Step 2: Evaluate the Model
+
+Evaluate performance on the test set:
+
+```bash
+python evaluate/evaluate_multinomial.py
+python evaluate/evaluate_bernoulli.py
+```
+
+Output includes:
+- Accuracy, Precision, Recall
+- Confusion Matrix
+- TP, FP, FN, TN counts
+- Test set distribution
+
+---
+
+### 🔹 Step 3: Predict New Emails
+
+Predict whether a given message is spam or ham:
+
+```bash
+python evaluate/predict_multinomial.py "Free money now! Click here!"
+python evaluate/predict_bernoulli.py "Hi, how are you?"
+```
+
+Output:
+```
+Prediction: SPAM (1)
+```
+
+or
+
+```
+Prediction: HAM (0)
+```
+
+---
+
+## 💡 Notes on Design Decisions
+
+- **Text Processing**: Done once during preprocessing (`text_processor.py`) and stored as `cleaned_messages.csv`. All downstream steps use this cleaned data.
+- **Model Loading**: Each evaluation/prediction script loads model and vocabulary independently for modularity.
+- **No sklearn.metrics**: All evaluation metrics (accuracy, precision, recall) are computed manually using `numpy` for educational clarity and independence.
+- **Modular Architecture**: Clear separation between preprocessing, training, evaluation, and prediction.
+
+---
+
+## 🖼️ Example Output
+
+```text
+=== Multinomial Naive Bayes Evaluation Results ===
+Accuracy:  0.9962
+Precision: 0.9778
+Recall:    1.0000
+
+Confusion Matrix:
+                Predicted
+                Ham (0)   Spam (1)
+Actual Ham (0)     433        2
+       Spam (1)      0        88
+
+Basic Counts (Spam = Positive Class):
+True Positives (TP):  88
+False Positives (FP): 2
+False Negatives (FN): 0
+True Negatives (TN):  433
+```
+
+---
+
+## IDE Support
+
+This project works well with:
+- **Visual Studio Code**
+- **PyCharm**
+
+✅ Recommended settings:
+- Set project root as workspace
+- Configure Python interpreter to point to your virtual environment
+
+---
+
+## 📚 Future Improvements
+
+- Add support for TF-IDF weighting
+- Implement cross-validation
+- Integrate with web interface (Flask/FastAPI)
+- Support multiple languages
+
+---
+
+## 📄 License
+
+MIT License – feel free to use, modify, and distribute.
+
+---
+
+> © 2025 Luo Chengwei,Xu Jihao,Yang Hao. All rights reserved.
